@@ -99,13 +99,15 @@ class LotePublicoOut(BaseModel):
 
 # ── Dashboard produtor ────────────────────────────────
 class DashboardOut(BaseModel):
+    produtor_nome: str
     total_colmeias: int
     colmeias_alerta: int
     producao_total_estimada: float
-    lotes_aprovados: int
-    lotes_em_analise: int
-    lotes_reprovados: int
+    lotes_aprovados: Optional[int] = 0
+    lotes_em_analise: Optional[int] = 0
+    lotes_reprovados: Optional[int] = 0
     colmeias: List[ColmeiaOut]
+    lotes: List[dict] = []
 
 
 # ── Lote produtor ─────────────────────────────────────
