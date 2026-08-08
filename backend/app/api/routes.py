@@ -211,3 +211,34 @@ def qr_code_lote(
     if not lote:
         raise HTTPException(status_code=404, detail="Lote não encontrado")
     return {"qr_code_base64": gerar_qr_base64(codigo), "codigo": codigo}
+
+
+@router.get("/lotes", tags=["Lotes"])
+def listar_lotes(
+    db: Session = Depends(get_db),
+    produtor: Produtor = Depends(get_current_produtor)
+):
+    from sqlalchemy import desc
+    lotes = (db.query(Lote)
+             .filter(Lote.produtor_id == produtor.id)
+             .order_by(desc(Lote.criado_em)).all())
+    result = []
+    for l in lotes:
+        cols = [lc.colmeia.codigo for lc in l.colmeias_lote]
+        laudo_out = None
+        if l.laudo:
+            ld = l.laudo
+            laudo_out = {
+                'brix': ld.brix, 'ph': ld.ph, 'hmf': ld.hmf,
+                'diastase': ld.diastase, 'umidade_mel': ld.umidade_mel,
+                'cor': ld.cor, 'aprovado': ld.aprovado,
+                'laboratorio': ld.laboratorio,
+                'responsavel_tecnico': ld.responsavel_tecnico,
+            }
+        result.append({
+            'id': l.id, 'codigo': l.codigo, 'florada': l.florada,
+            'data_extracao': l.data_extracao.strftime('%d/%m/%Y') if l.data_extracao else None,
+            'volume_kg': l.volume_kg, 'status_lab': l.status_lab,
+            'destino': l.destino, 'colmeias': cols, 'laudo': laudo_out,
+        })
+    return result
