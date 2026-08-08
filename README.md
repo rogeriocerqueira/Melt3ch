@@ -1,6 +1,6 @@
 # 🍯 MelT3ch — Plataforma IoT de Rastreabilidade Apícola
 
-**Mel Igapó · Alagoas · Programa Centelha 3**
+**Mel Igapó · **
 
 Stack: Vue.js 3 + FastAPI + PostgreSQL 16 + Docker Compose
 
