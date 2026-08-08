@@ -1,0 +1,40 @@
+# Ambiente
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Node / Vue
+node_modules/
+dist/
+.output/
+npm-debug.log*
+yarn-error.log*
+
+# Docker
+postgres_data/
+*.log
+
+# SSL
+nginx/ssl/
+*.pem
+*.key
+*.crt
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# QR codes gerados
+qrcodes/
+*.png
