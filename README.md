@@ -1,4 +1,4 @@
-# 🍯 MelT3ch — Plataforma IoT de Rastreabilidade Apícola
+# 🍯 MelT3ch :Plataforma IoT de Rastreabilidade Apícola
 
 **Mel Igapó · **
 
@@ -42,7 +42,7 @@ Backend FastAPI (Python 3.12 + SQLAlchemy)
 PostgreSQL 16
          ▲
          │ POST /api/iot/leitura a cada 30s
-Simulator (Python — simula LoRaWAN)
+Simulator (Python :simula LoRaWAN)
 ```
 
 ## 🗄 Modelos do banco
@@ -154,5 +154,5 @@ docker exec -it melt3ch_db psql -U melt3ch -d melt3ch_db
 
 ---
 
-*MelT3ch — Mel Igapó · Alagoas · 2026*
-*Programa Centelha 3 — Fapeal / Finep / CNPq*
+*MelT3ch :Mel Igapó · Alagoas · 2026*
+*Programa Centelha 3 :Fapeal / Finep / CNPq*
