@@ -24,7 +24,7 @@ Aguarde ~60s e acesse:
 | http://localhost:8000/docs | API Swagger |
 | http://localhost:5173/#/rastreio/LT-2026-047 | QR consumidor |
 
-**Login:** `daiane@melt3ch.com` / `melt3ch2026`
+**Login:** `user@melt3ch.com` / `melt3ch2026`
 
 ---
 
