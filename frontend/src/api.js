@@ -20,7 +20,8 @@ export const login = (email, senha) =>
 export const getDashboard = () => api.get('/api/dashboard')
 export const getLotes = () => api.get('/api/lotes')
 export const getQR = (codigo) => api.get(`/api/lotes/${codigo}/qr`)
-export const getHistorico = (codigo) => api.get(`/api/iot/colmeia/${codigo}/historico`)
+export const getHistorico = (codigo, limite = 48) =>
+  api.get(`/api/iot/colmeia/${codigo}/historico`, { params: { limite } })
 
 // Rastreio público (QR code do consumidor)
 export const getRastreio = (codigo) => api.get(`/api/rastreio/${codigo}`)

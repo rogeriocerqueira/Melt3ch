@@ -41,7 +41,7 @@ class ColmeiaOut(BaseModel):
     florada: Optional[str]
     status: str
     ultima_leitura: Optional[LeituraSensorOut] = None
-    producao_estimada_kg: Optional[float] = None
+    producao_estimada: Optional[float] = None
 
     class Config:
         from_attributes = True

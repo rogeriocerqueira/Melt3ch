@@ -161,7 +161,8 @@ const MAX_LIVE_POINTS = 60
 const DADOS_ANTIGOS_MS = 2 * DASH_MS + 30000   // sem leitura nova há mais que isso → aviso
 
 // Limiares centralizados (antes repetidos em vários pontos do código)
-const LIMITES = { temp: 37, umidade: 70, som: 350, somCritico: 500 }
+// Mesmos valores de backend/app/services/iot.py (faixa "ok")
+const LIMITES = { temp: 36, umidade: 70, som: 300, somCritico: 450 }
 // Fundo de escala das barras
 const ESCALA = { temp: 45, umidade: 100, peso: 70, som: 600 }
 

@@ -86,11 +86,9 @@ def dashboard(
         colmeias_out.append({
             "id": c.id, "codigo": c.codigo, "florada": c.florada,
             "status": c.status,
-            "ultima_temperatura": ultima.temperatura if ultima else None,
-            "ultima_umidade":     ultima.umidade     if ultima else None,
-            "ultimo_peso":        ultima.peso         if ultima else None,
-            "ultimo_som":         ultima.som          if ultima else None,
-            "ultimo_update":      ultima.timestamp.isoformat() if ultima else None,
+            # Objeto completo (id, timestamp, temperatura, umidade, peso, som),
+            # no formato que o schema ColmeiaOut e o frontend esperam
+            "ultima_leitura":     ultima,
             "producao_estimada":  round(max(0, (ultima.peso or 0) - 30), 1) if ultima else 0,
         })
 
