@@ -10,8 +10,9 @@
     <!-- ERRO -->
     <div v-else-if="erro" class="erro-screen">
       <div style="font-size:48px;margin-bottom:12px">❌</div>
-      <div style="font-weight:700;font-size:17px;color:var(--rd)">Lote não encontrado</div>
-      <div style="color:var(--gy);margin-top:8px">{{ route.params.codigo }}</div>
+      <div class="erro-titulo">{{ erro === 404 ? 'Lote não encontrado' : 'Não foi possível verificar o lote' }}</div>
+      <div class="erro-cod">{{ route.params.codigo }}</div>
+      <button v-if="erro !== 404" type="button" class="btn-tentar" @click="carregar">Tentar novamente</button>
     </div>
 
     <!-- CONTEÚDO -->
@@ -33,15 +34,16 @@
             <div class="lote-tags">
               <span class="tag" v-if="lote.status_lab==='aprovado'">✅ Aprovado</span>
               <span class="tag">📡 IoT</span>
-              <span class="tag">🌿 {{ lote.produtor_municipio }} — {{ lote.produtor_estado }}</span>
+              <span v-if="local" class="tag">🌿 {{ local }}</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- TABS -->
-      <div class="tabs">
-        <button v-for="t in abas" :key="t.id"
+      <div class="tabs" role="tablist">
+        <button v-for="t in abas" :key="t.id" type="button" role="tab"
+          :aria-selected="aba===t.id"
           class="tab" :class="{active:aba===t.id}" @click="aba=t.id">
           {{ t.label }}
         </button>
@@ -50,12 +52,12 @@
       <!-- ORIGEM -->
       <div v-if="aba==='origem'" class="section">
         <div class="eyebrow">🌿 Origem</div>
-        <div class="title">Nasceu no sertão de {{ lote.produtor_municipio }}</div>
+        <div class="title">Nasceu em {{ lote.produtor_municipio || 'mata nativa' }}</div>
         <div class="body">Mel produzido em área de caatinga preservada, sem agrotóxicos, com florada de <strong>{{ lote.florada }}</strong>.</div>
         <div v-if="lote.data_extracao" class="info-card">
           <div class="info-row">
             <span class="info-key">Extração</span>
-            <span class="info-val">{{ formatDate(lote.data_extracao) }}</span>
+            <span class="info-val">{{ formatarData(lote.data_extracao) }}</span>
           </div>
           <div class="info-row">
             <span class="info-key">Volume do lote</span>
@@ -63,11 +65,28 @@
           </div>
           <div class="info-row">
             <span class="info-key">Colmeias</span>
-            <span class="info-val">{{ lote.colmeias.join(', ') }}</span>
+            <span class="info-val">{{ lote.colmeias.join(', ') || '—' }}</span>
           </div>
           <div class="info-row">
             <span class="info-key">Florada</span>
             <span class="info-val">{{ lote.florada }}</span>
+          </div>
+        </div>
+
+        <!-- Resumo do monitoramento IoT das colmeias do lote -->
+        <div v-if="lote.iot_resumo" class="info-card iot-card">
+          <div class="iot-titulo">📡 Monitoramento das colmeias</div>
+          <div class="info-row">
+            <span class="info-key">Temperatura média</span>
+            <span class="info-val">{{ fmt(lote.iot_resumo.temperatura_media, 1) }} °C</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Dias monitorados</span>
+            <span class="info-val">{{ lote.iot_resumo.dias_monitorados }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Leituras registradas</span>
+            <span class="info-val">{{ lote.iot_resumo.total_leituras.toLocaleString('pt-BR') }}</span>
           </div>
         </div>
       </div>
@@ -77,7 +96,7 @@
         <div class="eyebrow">🔬 Análise laboratorial</div>
         <div class="title">Laudo técnico completo</div>
         <div class="body" v-if="lote.laudo">
-          Realizado em {{ formatDate(lote.laudo.data_analise) }} por {{ lote.laudo.responsavel_tecnico }}.
+          Realizado em {{ formatarData(lote.laudo.data_analise) }} por {{ lote.laudo.responsavel_tecnico }}.
         </div>
         <div v-if="lote.laudo" class="laudo-grid">
           <div class="laudo-item" v-for="(v,k) in laudoItens" :key="k">
@@ -102,7 +121,8 @@
         <div class="title">Da colmeia ao seu pote</div>
 
         <div class="etapas">
-          <div v-for="(e,i) in lote.etapas" :key="i" class="etapa" @click="etapaAtiva=i">
+          <button v-for="(e,i) in lote.etapas" :key="e.ordem" type="button" class="etapa"
+            :aria-expanded="i===etapaAtiva" @click="etapaAtiva=i">
             <div class="etapa-spine">
               <div class="etapa-circulo" :class="i<etapaAtiva?'feito':i===etapaAtiva?'ativo':'pend'">
                 {{ e.icone }}
@@ -116,7 +136,7 @@
                 <div v-if="i===etapaAtiva" class="etapa-detalhe">{{ e.detalhe }}</div>
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         <div class="impacto">
@@ -132,10 +152,10 @@
       <div class="footer">
         <div class="footer-brand">MEL IGAPÓ</div>
         <div class="footer-sub">DA FLORESTA AO SEU POTE</div>
-        <button class="btn-compartilhar" @click="compartilhar">📤 Compartilhar</button>
+        <button type="button" class="btn-compartilhar" @click="compartilhar">{{ copiado ? '✓ Link copiado' : '📤 Compartilhar' }}</button>
         <div class="footer-legal">
           MelT3ch Platform · Rastreabilidade apícola com IoT<br>
-          Lote {{ lote.codigo }} · {{ lote.produtor_municipio }} — {{ lote.produtor_estado }}
+          Lote {{ lote.codigo }}<template v-if="local"> · {{ local }}</template>
         </div>
       </div>
 
@@ -144,61 +164,80 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { getRastreio } from '../api'
+import { fmt, formatarData, localidade } from '../utils/format'
 
 const route = useRoute()
 const lote = ref(null)
 const carregando = ref(true)
-const erro = ref(false)
+const erro = ref(null)        // null | 404 | 'rede'
 const aba = ref('origem')
-const etapaAtiva = ref(6)
+const etapaAtiva = ref(0)
+const copiado = ref(false)
 
 const abas = [
   { id: 'origem', label: '🌿 Origem' },
-  { id: 'laudo',  label: '🔬 Análise' },
+  { id: 'laudo', label: '🔬 Análise' },
   { id: 'jornada', label: '📍 Jornada' },
 ]
 
+const local = computed(() => localidade(lote.value?.produtor_municipio, lote.value?.produtor_estado))
+
 const laudoItens = computed(() => {
-  if (!lote.value?.laudo) return {}
-  const l = lote.value.laudo
+  const l = lote.value?.laudo
+  if (!l) return {}
   return {
-    'Brix': `${l.brix}%`, 'pH': l.ph,
-    'HMF': `${l.hmf} mg/kg`, 'Diastase': `${l.diastase} DN`,
-    'Umidade': `${l.umidade_mel}%`, 'Cor': l.cor,
+    'Brix': `${fmt(l.brix, 1)}%`,
+    'pH': fmt(l.ph, 1),
+    'HMF': `${fmt(l.hmf, 1)} mg/kg`,
+    'Diastase': `${fmt(l.diastase, 1)} DN`,
+    'Umidade': `${fmt(l.umidade_mel, 1)}%`,
+    'Cor': l.cor || '—',
   }
 })
 
-function formatDate(d) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('pt-BR')
-}
-
-function compartilhar() {
+async function compartilhar() {
+  const url = window.location.href
   if (navigator.share) {
-    navigator.share({ title: 'Mel Igapó', text: 'Mel rastreado da caatinga alagoana!', url: window.location.href })
-  } else {
-    navigator.clipboard?.writeText(window.location.href)
+    try { await navigator.share({ title: 'Mel Igapó', text: `Mel rastreado — lote ${lote.value.codigo}`, url }) } catch { /* cancelado */ }
+    return
   }
+  try {
+    await navigator.clipboard.writeText(url)
+    copiado.value = true
+    setTimeout(() => (copiado.value = false), 2000)
+  } catch { /* sem permissão de área de transferência */ }
 }
 
-onMounted(async () => {
+async function carregar() {
+  carregando.value = true
+  erro.value = null
   try {
     const { data } = await getRastreio(route.params.codigo)
     lote.value = data
+    // Destaca a última etapa concluída da jornada
+    const concluidas = data.etapas.filter(e => e.concluida).length
+    etapaAtiva.value = Math.max(0, concluidas - 1)
   } catch (e) {
-    erro.value = true
+    erro.value = e.response?.status === 404 ? 404 : 'rede'
   } finally {
     carregando.value = false
   }
-})
+}
+
+onMounted(carregar)
 </script>
 
 <style scoped>
 .rastreio-page { max-width: 480px; margin: 0 auto; background: var(--of); min-height: 100vh; }
 .loading-screen,.erro-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--br); text-align: center; }
+.erro-titulo { font-weight: 700; font-size: 17px; color: var(--gd); }
+.erro-cod { color: var(--gdk); margin-top: 8px; font-size: 13px; }
+.btn-tentar { margin-top: 20px; background: var(--gd); color: var(--br); border: none; border-radius: 10px; padding: 10px 20px; font-weight: 700; cursor: pointer; }
+.iot-card { margin-top: 14px; }
+.iot-titulo { padding: 12px 16px 4px; font-size: 12px; font-weight: 700; color: var(--gdk); text-transform: uppercase; letter-spacing: 1px; }
 .loading-ico { font-size: 52px; animation: float 2s ease-in-out infinite; margin-bottom: 16px; }
 .loading-txt { color: var(--gdk); font-size: 14px; letter-spacing: 2px; }
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
@@ -238,10 +277,11 @@ onMounted(async () => {
 .laudo-val { font-size: 16px; font-weight: 800; color: var(--br); }
 .aprovado { background: var(--gnl); border: 1px solid var(--gn); border-radius: 14px; padding: 20px; text-align: center; }
 .reprovado { background: var(--rdl); border: 1px solid var(--rd); border-radius: 14px; padding: 16px; text-align: center; color: var(--rd); font-weight: 700; }
-.em-analise { background: #EEF2FF; border-radius: 14px; padding: 16px; text-align: center; color: #3730A3; font-weight: 700; }
+.em-analise { background: var(--inl); border-radius: 14px; padding: 16px; text-align: center; color: var(--ink); font-weight: 700; }
 
 .etapas { display: flex; flex-direction: column; }
-.etapa { display: flex; gap: 14px; cursor: pointer; }
+.etapa { display: flex; gap: 14px; cursor: pointer; width: 100%; border: none; background: none; padding: 0; text-align: left; font: inherit; color: inherit; }
+.etapa:focus-visible .etapa-card { outline: 3px solid var(--gd); outline-offset: 2px; }
 .etapa-spine { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 44px; }
 .etapa-circulo { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: all .3s; border: 2px solid transparent; }
 .etapa-circulo.feito { background: var(--gn); }

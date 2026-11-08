@@ -1,25 +1,28 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { login as apiLogin } from '../api'
+import { computed, ref } from 'vue'
+import { TOKEN_KEY, login as apiLogin } from '../api'
 import router from '../router'
 
-export const useAuthStore = defineStore('auth', () => {
-  const token = ref(localStorage.getItem('melt3ch_token') || '')
-  const logado = ref(!!token.value)
+function lerToken() {
+  try { return localStorage.getItem(TOKEN_KEY) || '' } catch { return '' }
+}
 
-  async function entrar(email, senha) {
+export const useAuthStore = defineStore('auth', () => {
+  const token = ref(lerToken())
+  const logado = computed(() => !!token.value)
+
+  /** Faz login e leva para a página pedida antes (ou o painel). Lança erro se falhar. */
+  async function entrar(email, senha, destino = '/dashboard') {
     const { data } = await apiLogin(email, senha)
     token.value = data.access_token
-    logado.value = true
-    localStorage.setItem('melt3ch_token', data.access_token)
-    router.push('/dashboard')
+    localStorage.setItem(TOKEN_KEY, data.access_token)
+    await router.push(destino)
   }
 
   function sair() {
     token.value = ''
-    logado.value = false
-    localStorage.removeItem('melt3ch_token')
-    router.push('/login')
+    localStorage.removeItem(TOKEN_KEY)
+    if (router.currentRoute.value.meta.auth) router.push('/login')
   }
 
   return { token, logado, entrar, sair }

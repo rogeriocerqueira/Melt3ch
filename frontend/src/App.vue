@@ -40,17 +40,10 @@ import { useAuthStore } from './stores/auth'
 const auth = useAuthStore()
 const route = useRoute()
 
-// Rotas de rastreio são públicas (o consumidor acessa via QR code),
-// portanto não exibem a navbar administrativa.
-//
-// SUGESTÃO (mais robusto): em vez de comparar a string da URL, marque essas
-// rotas no router com `meta: { hideNav: true }` e troque por
-// `route.meta.hideNav`. Assim o layout não depende do formato das URLs
-// (ex.: uma rota "/rastreio-admin" não seria confundida com pública).
-const isRastreio = computed(() => route.path.startsWith('/rastreio'))
-
-// Extraído para uma computed própria — deixa o v-if do template mais legível.
-const mostrarNavbar = computed(() => auth.logado && !isRastreio.value)
+// Login e rastreio público (o consumidor acessa via QR code) não exibem a
+// navbar administrativa. Cada rota declara isso com `meta: { hideNav: true }`
+// em router/index.js, então o layout não depende do formato das URLs.
+const mostrarNavbar = computed(() => auth.logado && !route.meta.hideNav)
 </script>
 
 <!-- Estilos GLOBAIS: reset + paleta. Ficam sem `scoped` de propósito,
@@ -64,6 +57,8 @@ const mostrarNavbar = computed(() => auth.logado && !isRastreio.value)
   --gn: #4A7C3F; --gnl: #EAF3DE; --gnk: #2D5A24;
   --wh: #FFFFFF; --of: #FBF7F0; --gy: #888780; --gyl: #F4F2EF;
   --rd: #C0392B; --rdl: #FDECEA;
+  --am: #F59E0B; --aml: #FFF3CD; --amk: #856404;  /* alerta */
+  --in: #6366F1; --inl: #EEF2FF; --ink: #3730A3;  /* em análise */
 }
 
 body {
@@ -120,6 +115,14 @@ body {
 @keyframes pulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 124, 63, .5); }
   50% { opacity: .7; box-shadow: 0 0 0 5px rgba(74, 124, 63, 0); }
+}
+
+/* Celular: esconde textos secundários para caber em uma linha */
+@media (max-width: 640px) {
+  .navbar { padding: 0 12px; }
+  .nav-sub, .live-txt, .live-dot { display: none; }
+  .nav-name { font-size: 14px; letter-spacing: 1px; }
+  .nav-link { padding: 8px 10px; }
 }
 
 /* Acessibilidade: respeita quem prefere menos movimento na tela */

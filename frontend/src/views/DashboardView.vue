@@ -30,7 +30,7 @@
     </div>
 
     <div class="section-header" v-if="dash">
-      <div class="section-title">🐝 Monitoramento em tempo real · Capitão Poço — PA</div>
+      <div class="section-title">🐝 Monitoramento em tempo real<template v-if="local"> · {{ local }}</template></div>
       <div class="live-pill" :class="{ 'live-pill-off': dadosAntigos || erro }">
         <span class="live-dot"></span>
         {{ erro ? 'falha na conexão' : `IoT ativo · ciclo ${ciclo}` }}
@@ -49,7 +49,7 @@
         @keydown.space.prevent="abrirColmeia(c)">
         <div class="hive-top">
           <span class="hive-id">🐝 {{ c.codigo }}</span>
-          <span class="badge" :class="`badge-${c.status}`">{{ STATUS_LABEL[c.status] ?? c.status }}</span>
+          <span class="badge" :class="`badge-${c.status}`">{{ STATUS_COLMEIA[c.status] ?? c.status }}</span>
         </div>
         <div class="hive-florada">🌸 {{ c.florada }}</div>
         <template v-if="c.ultima_leitura">
@@ -72,7 +72,7 @@
           <div class="modal-header">
             <div>
               <div class="modal-title" id="modal-colmeia-titulo">🐝 {{ modalColmeia.codigo }}</div>
-              <div class="modal-sub">{{ modalColmeia.florada }} · {{ STATUS_LABEL[modalColmeia.status] ?? modalColmeia.status }}</div>
+              <div class="modal-sub">{{ modalColmeia.florada }} · {{ STATUS_COLMEIA[modalColmeia.status] ?? modalColmeia.status }}</div>
             </div>
             <div class="modal-header-right">
               <div class="live-pill-sm"><span class="live-dot"></span>ao vivo · {{ liveSegundos }}s</div>
@@ -153,6 +153,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { getDashboard, getHistorico } from '../api'
+import { ESCALA, LIMITES, STATUS_COLMEIA } from '../constants'
+import { fmt, formatarHora, localidade, pct } from '../utils/format'
 
 // ───────── Configuração ─────────
 const DASH_MS = 30000          // atualização da página
@@ -160,21 +162,14 @@ const LIVE_MS = 5000           // atualização do modal
 const MAX_LIVE_POINTS = 60
 const DADOS_ANTIGOS_MS = 2 * DASH_MS + 30000   // sem leitura nova há mais que isso → aviso
 
-// Limiares centralizados (antes repetidos em vários pontos do código)
-// Mesmos valores de backend/app/services/iot.py (faixa "ok")
-const LIMITES = { temp: 36, umidade: 70, som: 300, somCritico: 450 }
-// Fundo de escala das barras
-const ESCALA = { temp: 45, umidade: 100, peso: 70, som: 600 }
-
 const CHART = { w: 560, h: 120, left: 40, right: 10, pad: 14 }
 
-const STATUS_LABEL = { normal: 'Normal', alerta: '⚠ Alerta', critico: '🔴 Crítico' }
 const COR = {
   rd: 'var(--rd)',
   gd: 'var(--gd)',
   gn: 'var(--gn)',
   br3: 'var(--br3)',
-  am: 'var(--am, #F59E0B)',
+  am: 'var(--am)',
 }
 
 const LEITURA_VAZIA = () => ({ temperatura: null, umidade: null, peso: null, som: null })
@@ -205,19 +200,12 @@ const modalColmeia = computed(() =>
   sel.value == null ? null : dash.value?.colmeias?.find(c => c.id === sel.value) ?? null
 )
 
+const local = computed(() => localidade(dash.value?.produtor_municipio, dash.value?.produtor_estado))
+
 // ───────── Helpers ─────────
-function fmt(v, casas) {
-  return typeof v === 'number' && !Number.isNaN(v) ? v.toFixed(casas) : '—'
-}
-function pct(v, max) {
-  if (typeof v !== 'number' || Number.isNaN(v)) return 0
-  return Math.max(0, Math.min(100, (v / max) * 100))
-}
-// Ajuste aqui se a API usar outro nome de campo para o horário da leitura
 function tsLeitura(l) {
-  const raw = l?.timestamp ?? l?.data_hora ?? l?.created_at ?? l?.criado_em
-  if (raw == null) return null
-  const t = new Date(raw).getTime()
+  if (!l?.timestamp) return null
+  const t = new Date(l.timestamp).getTime()
   return Number.isNaN(t) ? null : t
 }
 function mesmaLeitura(a, b) {
@@ -228,9 +216,6 @@ function mesmaLeitura(a, b) {
   // Sem id nem timestamp: compara os valores
   return a.temperatura === b.temperatura && a.umidade === b.umidade &&
          a.peso === b.peso && a.som === b.som
-}
-function horaBR(ms) {
-  return new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 // ───────── Dashboard (polling de 30s) ─────────
@@ -258,10 +243,10 @@ async function carregar() {
       const tss = (data.colmeias ?? []).map(c => tsLeitura(c.ultima_leitura)).filter(t => t != null)
       if (tss.length) {
         const maisRecente = Math.max(...tss)
-        ultimaLeitura.value = horaBR(maisRecente)
+        ultimaLeitura.value = formatarHora(maisRecente)
         dadosAntigos.value = Date.now() - maisRecente > DADOS_ANTIGOS_MS
       } else {
-        ultimaLeitura.value = horaBR(Date.now())
+        ultimaLeitura.value = formatarHora(Date.now())
         dadosAntigos.value = false
       }
     }
@@ -538,14 +523,14 @@ onUnmounted(() => {
 .hive-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
 .hive-card:focus-visible{box-shadow:0 0 0 3px var(--gd)}
 .hive-card.selected{border-color:var(--gd);background:var(--gpl);box-shadow:0 0 0 4px rgba(245,184,0,.15)}
-.hive-card.alerta{border-color:var(--am, #F59E0B)}
+.hive-card.alerta{border-color:var(--am)}
 .hive-card.critico{border-color:var(--rd);animation:glow 2s infinite}
 @keyframes glow{0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.06)}50%{box-shadow:0 0 16px rgba(192,57,43,.35)}}
 .hive-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .hive-id{font-weight:800;font-size:15px;color:var(--br)}
 .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
 .badge-normal{background:var(--gnl);color:var(--gnk)}
-.badge-alerta{background:#FFF3CD;color:#856404}
+.badge-alerta{background:var(--aml);color:var(--amk)}
 .badge-critico{background:var(--rdl);color:var(--rd)}
 .hive-florada{font-size:12px;color:var(--gy);margin-bottom:12px}
 .gauge{margin-bottom:10px}
@@ -591,12 +576,12 @@ onUnmounted(() => {
 .chart-title{font-size:13px;font-weight:700;color:var(--br)}
 .chart-meta{font-size:11px;color:var(--gy)}
 .chart-svg{width:100%;height:120px}
-.grid-line{stroke:var(--gyl, #E8E4DC);stroke-width:1;stroke-dasharray:4,4}
-.y-label{font-size:10px;fill:var(--gy, #888780)}
+.grid-line{stroke:var(--gyl);stroke-width:1;stroke-dasharray:4,4}
+.y-label{font-size:10px;fill:var(--gy)}
 .chart-area{fill:rgba(245,184,0,.08)}
-.chart-line{fill:none;stroke:var(--gd, #F5B800);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-.chart-dot{fill:var(--gd, #F5B800);stroke:#fff;stroke-width:1}
-.chart-dot.hot{fill:var(--rd, #C0392B)}
+.chart-line{fill:none;stroke:var(--gd);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart-dot{fill:var(--gd);stroke:#fff;stroke-width:1}
+.chart-dot.hot{fill:var(--rd)}
 .chart-dot-last{stroke-width:2}
 .chart-info{font-size:12px;color:var(--gy);text-align:center;margin-top:8px}
 .chart-info strong{color:var(--br)}
@@ -605,10 +590,10 @@ onUnmounted(() => {
 /* Diagnóstico */
 .diagnostico{border-radius:12px;padding:16px;border:1px solid}
 .diag-critico{background:var(--rdl);border-color:var(--rd)}
-.diag-alerta{background:#FFF3CD;border-color:var(--am, #F59E0B)}
+.diag-alerta{background:var(--aml);border-color:var(--am)}
 .diag-title{font-weight:700;margin-bottom:8px;font-size:14px}
 .diag-critico .diag-title{color:var(--rd)}
-.diag-alerta .diag-title{color:#856404}
+.diag-alerta .diag-title{color:var(--amk)}
 .diag-body{font-size:13px;color:var(--br);line-height:1.6}
 
 /* Responsivo */
